@@ -10,6 +10,7 @@
 
 require('colors');
 const moment = require('moment');
+const _ = require('lodash');
 
 const loggers = {
   info: console.info,
@@ -42,7 +43,7 @@ console.json = (...args) => {
           arg = JSON.stringify(arg, undefined, 2) || arg;
         } catch (error) { }
       }
-    
+
       arg = arg && arg.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
         if (/^"/.test(match)) {
           if (/:$/.test(match)) {
@@ -58,7 +59,7 @@ console.json = (...args) => {
         }
         return match;
       });
-    
+
       console.llog(arg);
     } catch(error) {
       console.llog(initialArg)
@@ -75,3 +76,5 @@ console.end = (id = 'Duration') => {
 };
 
 global.wait = seconds => new Promise(resolve => setTimeout(resolve, seconds * 1000));
+global.moment = moment
+global.lo = _
