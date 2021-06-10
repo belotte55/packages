@@ -54,7 +54,7 @@ console.json = (...args) => {
           return match.blue.underline.bold;
         } if (/null/.test(match)) {
           return match.gray;
-        } if (/[0-9]+/.test(match)) {
+        } if (/(^\^\[\[)[0-9]+/.test(match)) {
           return match.green.bold;
         }
         return match;
