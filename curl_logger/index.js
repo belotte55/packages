@@ -2,21 +2,34 @@
 
 const _ = require('lodash');
 const fs = require('fs');
-let filePath = `/tmp/curlResponse.txt`
 
-if (/(\.txt)|(.json)$/.test(process.argv[2])) {
-  ([filePath] = process.argv.splice(2, 1))
+const args = {
+  fields: [...(process.argv[2] || '').split(' '), ...process.argv.slice(3).map(arg => arg.replace(/^ */, '').replace(/ *$/, ''))].filter(Boolean),
+  filePath: `/tmp/curlResponse.txt`
+}
+
+const argFilePath = args.fields.find(field => /.*\.txt$/.test(field))
+if (argFilePath) {
+  args.filePath = argFilePath
+}
+
+if (/(\.txt)|(.json)$/.test(args.fields[0])) {
+  args.filePath = args.fields.shift()
+}
+if (args.fields.indexOf('keys') > -1) {
+  args.showKeys = true;
+  args.fields.splice(args.fields.indexOf('keys'), 1);
 }
 
 (async () => {
-  let fileContent = (await fs.readFileSync(filePath)).toString()
+  let fileContent = (await fs.readFileSync(args.filePath)).toString()
   try {
     fileContent = fileContent.replace(/^\[[0-9]+\] /g, '')
     const document = JSON.parse(fileContent)
 
-    if (process.argv.length > 2) {
+    if (args.fields.length) {
       const newDocument = {}
-      process.argv.slice(2).forEach((field) => {
+      args.fields.forEach((field) => {
         newDocument[field] = _.get(document, field);
       });
       Object.keys(newDocument).forEach((key) => {
@@ -24,7 +37,11 @@ if (/(\.txt)|(.json)$/.test(process.argv[2])) {
         const subDocument = {};
         keys.reduce((acc, keyPart, index) => {
           if (index === keys.length - 1) {
-            acc[keyPart] = newDocument[key];
+            if (args.showKeys) {
+              acc[keyPart] = Object.keys(newDocument[key]);
+            } else {
+              acc[keyPart] = newDocument[key];
+            }
           } else {
             acc[keyPart] = {};
           }
@@ -34,6 +51,8 @@ if (/(\.txt)|(.json)$/.test(process.argv[2])) {
         Object.assign(newDocument, subDocument);
       });
       console.info(newDocument)
+    } else if (args.showKeys) {
+      console.info(Object.keys(document));
     } else {
       console.info(document)
     }

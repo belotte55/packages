@@ -10,6 +10,7 @@
 
 require('colors');
 const moment = require('moment');
+const dayjs = require('dayjs');
 const _ = require('lodash');
 
 const loggers = {
@@ -27,47 +28,60 @@ const COLORS = {
 
 const begins = {};
 
-const timestamp = () => process.env.DISABLE_TIMESTAMPS ? undefined : `[${moment().format('HHmmssSSS')}]`
+const timestamp = () => process.env.DISABLE_TIMESTAMPS ? undefined : ` ${moment().format('HHmmssSSS')} `
 
-console.log = (...params) => loggers.log(...[...[COLORS.RESET, timestamp()].filter(Boolean), ...Array.prototype.slice.call(params)]);
-console.llog = (...params) => loggers.log(...[...[COLORS.RESET, timestamp()].filter(Boolean), ...Array.prototype.slice.call(params)]);
-console.info = (...params) => loggers.info(...[...[COLORS.GREEN, timestamp()].filter(Boolean), ...Array.prototype.slice.call(params), COLORS.RESET]);
-console.warn = (...params) => loggers.warn(...[...[COLORS.YELLOW, timestamp()].filter(Boolean), ...Array.prototype.slice.call(params), COLORS.RESET]);
-console.error = (...params) => loggers.error(...[...[COLORS.RED, timestamp()].filter(Boolean), ...Array.prototype.slice.call(params), COLORS.RESET]);
-console.json = (...args) => {
-  args.forEach(arg => {
-    const initialArg = arg
-    try {
-      if (typeof arg !== 'string') {
-        try {
-          arg = JSON.stringify(arg, undefined, 2) || arg;
-        } catch (error) { }
-      }
-
-      arg = arg && arg.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
-        if (/^"/.test(match)) {
-          if (/:$/.test(match)) {
-            return match.white.dim.italic.replace(/"/g, '');
-          }
-          return match.replace(/^"(.*)"/g, `${'"'.black.dim}${'$1'.red.bold}${'"'.black.dim}`);
-        } if (/true|false/.test(match)) {
-          return match.blue.underline.bold;
-        } if (/null/.test(match)) {
-          return match.gray;
-        } if (/(^\^\[\[)[0-9]+/.test(match)) {
-          return match.green.bold;
+const logger = (timestampColor) => {
+  const loggerToUse = (...params) => loggers.log(...[timestamp().inverse.bold[timestampColor], ...Array.prototype.slice.call(params), COLORS.RESET])
+  return (...args) => {
+    args.forEach(arg => {
+      const initialArg = arg
+      try {
+        if (arg instanceof Promise) {
+          loggerToUse(`${'<'.red}${'Promise'.bold.gray}${'>'.red}`)
+          return
         }
-        return match;
-      });
+        if (typeof arg !== 'string') {
+          try {
+            arg = JSON.stringify(arg, undefined, 2) || arg;
+          } catch (error) { }
+        }
 
-      console.llog(arg);
-    } catch(error) {
-      console.llog(initialArg)
-    }
-  })
-};
-console.log = console.json
-console.info = console.json
+        arg = arg && arg.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|(^\[)-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)|({|})|(\[((^[0-9]+m)|$)|])/g, (match) => {
+          if (/\[[0-9]+m/.test(match)) {
+            return match
+          }
+          if (/^"/.test(match)) {
+            if (/:$/.test(match)) {
+              return match.replace(/^"(.*)"/g, `${'"'.black.dim}${'$1'.gray}${'"'.black.dim}`)
+            }
+            return match.replace(/^"(.*)"/g, `${'"'.black.dim}${'$1'.red.bold}${'"'.black.dim}`);
+          } if (/true|false/.test(match)) {
+            return match.blue.underline.bold;
+          } if (/null/.test(match)) {
+            return match.gray;
+          } if (/(^\^\[\[)?[0-9]+/.test(match)) {
+            return match.green.bold;
+          } if (/{|}/.test(match)) {
+            return match.cyan.bold;
+          } if (/\[|]/.test(match)) {
+          }
+          return match;
+        })
+
+        loggerToUse(arg);
+      } catch(error) {
+        loggerToUse(initialArg)
+      }
+    })
+  }
+}
+
+console.llog = (...params) => loggers.log(...[timestamp(), ...Array.prototype.slice.call(params), COLORS.RESET]);
+console.json = logger('cyan');
+console.log = logger('blue')
+console.info = logger('green')
+console.warn = logger('yellow')
+console.error = logger('red')
 console.start = (id = 'Duration') => {
   begins[id] = Date.now();
 };
@@ -77,4 +91,6 @@ console.end = (id = 'Duration') => {
 
 global.wait = seconds => new Promise(resolve => setTimeout(resolve, seconds * 1000));
 global.moment = moment
+global.dayjs = dayjs
 global.lo = _
+
