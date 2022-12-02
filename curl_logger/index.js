@@ -2,11 +2,23 @@
 
 const _ = require('lodash');
 const fs = require('fs');
+const minimist = require('minimist')
+const flat = require('flat')
 
+const argv = minimist(process.argv.slice(2))
 const args = {
-  fields: [...(process.argv[2] || '').split(' '), ...process.argv.slice(3).map(arg => arg.replace(/^ */, '').replace(/ *$/, ''))].filter(Boolean),
+  flat: argv.flat,
+  fields: [...(argv._[0] || '').split(' '), ...argv._.slice(1).map(arg => arg.replace(/^ */, '').replace(/ *$/, ''))].filter(Boolean),
   filePath: `/tmp/curlResponse.txt`
 }
+
+const namedParams = ['flat', 'no_date']
+namedParams.forEach(namedParam => {
+  const index = args.fields.indexOf(`--${namedParam}`)
+  if (index > -1) {
+    args[namedParam] = args.fields.splice(index, 1)
+  }
+})
 
 const argFilePath = args.fields.find(field => /.*\.txt$/.test(field))
 if (argFilePath) {
@@ -19,6 +31,15 @@ if (/(\.txt)|(.json)$/.test(args.fields[0])) {
 if (args.fields.indexOf('keys') > -1) {
   args.showKeys = true;
   args.fields.splice(args.fields.indexOf('keys'), 1);
+}
+
+const logFlatDocument = document => {
+  const flatObject = flat.flatten(document, { safe: false })
+  const orderedObject = { }
+  Object.keys(flatObject).sort().forEach(key => {
+    orderedObject[key] = flatObject[key]
+  })
+  console.info(orderedObject)
 }
 
 (async () => {
@@ -50,11 +71,19 @@ if (args.fields.indexOf('keys') > -1) {
         delete newDocument[key];
         Object.assign(newDocument, subDocument);
       });
-      console.info(newDocument)
+      if (args.flat) {
+        logFlatDocument(document)
+      } else {
+        console.info(newDocument)
+      }
     } else if (args.showKeys) {
       console.info(Object.keys(document));
     } else {
-      console.info(document)
+      if (args.flat) {
+        logFlatDocument(document)
+      } else {
+        console.info(document)
+      }
     }
   } catch(error) {
     console.error(error)
