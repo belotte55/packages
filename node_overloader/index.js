@@ -11,6 +11,7 @@
 require('colors');
 const moment = require('moment');
 const dayjs = require('dayjs');
+const chalk = require('chalk');
 const _ = require('lodash');
 
 const loggers = {
@@ -28,6 +29,8 @@ const COLORS = {
 
 const begins = {};
 
+const inverse = s => ` ${s} `.inverse.bold
+
 const timestamp = () => process.env.DISABLE_TIMESTAMPS ? undefined : ` ${moment().format('HHmmssSSS')} `
 
 const logger = (timestampColor) => {
@@ -36,6 +39,10 @@ const logger = (timestampColor) => {
     args.forEach(arg => {
       const initialArg = arg
       try {
+        if (arg instanceof Error) {
+          loggerToUse(`${inverse(arg.name).red} ${inverse(arg.message).yellow}\n${arg.stack.split('\n').slice(1).join('\n')}`)
+          return
+        }
         if (arg instanceof Promise) {
           loggerToUse(`${'<'.red}${'Promise'.bold.gray}${'>'.red}`)
           return
