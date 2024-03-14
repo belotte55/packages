@@ -11,8 +11,15 @@
 require('colors');
 const moment = require('moment');
 const dayjs = require('dayjs');
+const utc = require('dayjs/plugin/utc');
+const timezone = require('dayjs/plugin/timezone');
+const advancedFormat = require('dayjs/plugin/advancedFormat');
 const chalk = require('chalk');
 const _ = require('lodash');
+
+dayjs.extend(utc)
+dayjs.extend(timezone)
+dayjs.extend(advancedFormat)
 
 const loggers = {
   info: console.info,
@@ -100,4 +107,5 @@ global.wait = seconds => new Promise(resolve => setTimeout(resolve, seconds * 10
 global.moment = moment
 global.dayjs = dayjs
 global.lo = _
+global._ = _
 
